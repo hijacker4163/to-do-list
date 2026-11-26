@@ -30,10 +30,18 @@
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(135deg, #f0f4fd 0%, #eef2f9 100%);
             min-height: 100vh;
-            padding-top: max(12px, env(safe-area-inset-top, 12px));
-            padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
-            padding-left: max(12px, env(safe-area-inset-left, 12px));
-            padding-right: max(12px, env(safe-area-inset-right, 12px));
+        }
+        .app-container {
+            padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+            padding-left: calc(env(safe-area-inset-left, 0px) + 12px);
+            padding-right: calc(env(safe-area-inset-right, 0px) + 12px);
+        }
+        /* 如果是在 iOS 獨立 Web App 模式，且 safe-area-inset-top 讀取為 0 時的防禦性保底 */
+        @media all and (display-mode: standalone) {
+            .app-container {
+                padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 12px));
+            }
         }
         .glass-panel {
             background: rgba(255, 255, 255, 0.92);
@@ -91,7 +99,8 @@
         }
     </style>
 </head>
-<body class="p-3 md:p-6 flex flex-col justify-between">
+<body class="flex flex-col justify-between">
+    <div class="app-container w-full flex flex-col justify-between min-h-screen">
 
     <!-- 頂端導航與工具列 -->
     <header class="max-w-7xl mx-auto w-full mb-6">
@@ -476,6 +485,7 @@
     <footer class="max-w-7xl mx-auto w-full text-center text-xs text-slate-400 py-6">
         雲端待辦清單 (To-Do & Calendar) • 支援 GitHub Pages 靜態託管與 Google Sheets API
     </footer>
+    </div><!-- end app-container -->
 
     <!-- 核心 JavaScript 邏輯 -->
     <script>
