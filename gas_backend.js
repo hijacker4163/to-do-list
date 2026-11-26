@@ -1,11 +1,11 @@
 /**
- * Google Apps Script 後端程式碼 (Google 試算表待辦事項資料庫 + LINE Bot 提醒)
+ * Google Apps Script 後端程式碼 (Google 試算表待辦事項資料庫 + 支援每日循環與編輯)
  * 
  * 部署步驟：
  * 1. 建立一個全新的 Google 試算表 (Google Sheets)
  * 2. 點選「擴充功能」->「Apps Script」
  * 3. 貼上此程式碼
- * 4. 點選右上角「部署」->「新增部署作業」
+ * 4. 點選右上角「部署」->「管理部署作業」或「新增部署作業」
  *    - 種類選擇：「網頁應用程式 (Web App)」
  *    - 執行身分：我 (您的帳號)
  *    - 誰可以存取：任何人 (Anyone)
@@ -66,7 +66,9 @@ function handleRequest(e) {
           priority: String(row[5] || 'medium'),
           category: String(row[6] || '個人'),
           note: String(disp[7] || row[7] || ''),
-          createdAt: Number(row[8]) || 0
+          createdAt: Number(row[8]) || 0,
+          isDaily: Boolean(row[9]),
+          lastCompletedDate: String(disp[10] || row[10] || '')
         });
       }
       return jsonResponse({ status: 'success', data: todos });
@@ -84,7 +86,9 @@ function handleRequest(e) {
         item.priority || 'medium',
         item.category || '個人',
         item.note || '',
-        item.createdAt || Date.now()
+        item.createdAt || Date.now(),
+        Boolean(item.isDaily),
+        "'" + (item.lastCompletedDate || '')
       ]);
       return jsonResponse({ status: 'success', data: item });
     }
@@ -110,6 +114,8 @@ function handleRequest(e) {
         if (updateItem.priority !== undefined) sheet.getRange(foundRow, 6).setValue(updateItem.priority);
         if (updateItem.category !== undefined) sheet.getRange(foundRow, 7).setValue(updateItem.category);
         if (updateItem.note !== undefined) sheet.getRange(foundRow, 8).setValue(updateItem.note);
+        if (updateItem.isDaily !== undefined) sheet.getRange(foundRow, 10).setValue(Boolean(updateItem.isDaily));
+        if (updateItem.lastCompletedDate !== undefined) sheet.getRange(foundRow, 11).setValue("'" + updateItem.lastCompletedDate);
         return jsonResponse({ status: 'success', data: updateItem });
       }
       return jsonResponse({ status: 'error', message: '找不到對應的待辦事項' });
@@ -118,11 +124,15 @@ function handleRequest(e) {
     // 動作 4：切換勾選狀態 (action=toggle)
     if (action === 'toggle') {
       var targetId = String((postData && postData.id) || params.id || '').trim();
+      var reqLastCompletedDate = (postData && postData.lastCompletedDate) || params.lastCompletedDate || '';
       for (var i = startIdx; i < rawData.length; i++) {
         if (String(rawData[i][0]).trim() === targetId) {
           var current = Boolean(rawData[i][4]);
           var nextVal = !current;
           sheet.getRange(i + 1, 5).setValue(nextVal);
+          if (reqLastCompletedDate) {
+            sheet.getRange(i + 1, 11).setValue("'" + reqLastCompletedDate);
+          }
           return jsonResponse({ status: 'success', id: targetId, completed: nextVal });
         }
       }
@@ -147,7 +157,9 @@ function handleRequest(e) {
     if (action === 'clear_completed') {
       var count = 0;
       for (var i = rawData.length - 1; i >= startIdx; i--) {
-        if (Boolean(rawData[i][4])) {
+        // 如果是每日循環，不隨意整列刪除，僅清除一般完成事項
+        var isDaily = Boolean(rawData[i][9]);
+        if (Boolean(rawData[i][4]) && !isDaily) {
           sheet.deleteRow(i + 1);
           count++;
         }
@@ -178,7 +190,9 @@ function initSheetHeader(sheet) {
       '優先度 (high/medium/low)',
       '分類標籤',
       '備註說明',
-      '建立時間戳記'
+      '建立時間戳記',
+      '是否每日循環 (TRUE/FALSE)',
+      '最後完成日期 (YYYY-MM-DD)'
     ]);
     sheet.getRange("1:1").setFontWeight("bold").setBackground("#e2e8f0");
   }
