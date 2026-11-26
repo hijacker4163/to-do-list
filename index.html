@@ -1184,20 +1184,33 @@ IconIndex=0`;
             document.getElementById('syncModal').classList.add('hidden');
         }
 
-        function saveSyncSettings() {
+        async function saveSyncSettings() {
             const urlInput = document.getElementById('gasApiUrlInput');
-            const url = urlInput.value.trim();
+            let url = urlInput.value.trim();
+
             if (url) {
+                // 自動補全 script ID 格式
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    if (url.endsWith('/exec')) {
+                        url = `https://script.google.com/macros/s/${url}`;
+                    } else {
+                        url = `https://script.google.com/macros/s/${url}/exec`;
+                    }
+                    urlInput.value = url;
+                }
+
                 localStorage.setItem(GAS_URL_KEY, url);
                 updateSyncBadge(true);
-                alert('雲端資料庫網址已儲存！即刻嘗試同步...');
+                // 優先關閉視窗，提供流暢體驗
                 closeSyncModal();
-                loadTodos();
+                showRefreshAnimation(true);
+                await loadTodos();
+                showRefreshAnimation(false);
             } else {
                 localStorage.removeItem(GAS_URL_KEY);
                 updateSyncBadge(false);
-                alert('已清除雲端網址，切換回本機 LocalStorage 儲存模式。');
                 closeSyncModal();
+                loadTodos();
             }
         }
 
