@@ -2,8 +2,19 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>質感雲端待辦清單 (To-Do & Calendar)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>待辦清單</title>
+    
+    <!-- PWA 與 iPhone / iOS 桌面 Web App 專用設定 -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="待辦清單">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- iOS 主畫面圖示 (Apple Touch Icon) -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%232563eb'/><text x='50' y='68' font-size='50' text-anchor='middle'>📋</text></svg>">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -443,6 +454,13 @@
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 註冊 Service Worker (PWA 支援)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW registration failed:', err);
+                });
+            }
+
             initDefaults();
             loadTodos();
         });
