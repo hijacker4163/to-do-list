@@ -8,9 +8,9 @@
     <!-- PWA 與 iPhone / iOS 桌面 Web App 專用設定 -->
     <link rel="manifest" href="./manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="待辦清單">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#f0f4fd">
     
     <!-- iOS 主畫面圖示 (Apple Touch Icon) -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%232563eb'/><text x='50' y='68' font-size='50' text-anchor='middle'>📋</text></svg>">
@@ -20,10 +20,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        
+        /* 支援 iPhone 瀏海與動態島的安全區域 (Safe Area Insets) */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+        }
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: linear-gradient(135deg, #f0f4fd 0%, #eef2f9 100%);
             min-height: 100vh;
+            padding-top: max(12px, env(safe-area-inset-top, 12px));
+            padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+            padding-left: max(12px, env(safe-area-inset-left, 12px));
+            padding-right: max(12px, env(safe-area-inset-right, 12px));
         }
         .glass-panel {
             background: rgba(255, 255, 255, 0.92);
@@ -1097,35 +1107,16 @@
         }
 
         // 一鍵建立 iPhone 桌面 App 或下載電腦捷徑
-        async function handleAddToHomeScreen() {
-            const currentUrl = window.location.href;
+        function handleAddToHomeScreen() {
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-            // 1. 如果在支援 Web Share API 的環境 (如 iPhone Safari)
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: '待辦清單',
-                        text: '我的雲端待辦清單 App',
-                        url: currentUrl
-                    });
-                    return;
-                } catch (err) {
-                    // 若使用者取消分享或 iOS 不允許 share 直接加主畫面，則跳出提示視窗
-                    if (err.name !== 'AbortError' && isIOS) {
-                        openIosGuideModal();
-                        return;
-                    }
-                }
-            }
-
-            // 2. 如果是 iOS 且 share 未能執行，直接顯示專屬視覺指引
+            // 如果是 iPhone/iPad，直接跳出清晰的 2 步視覺指引
             if (isIOS) {
                 openIosGuideModal();
                 return;
             }
 
-            // 3. 電腦環境則下載電腦桌面捷徑檔
+            // 電腦環境則下載電腦桌面捷徑檔
             downloadDesktopShortcut();
         }
 
