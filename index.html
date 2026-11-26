@@ -102,14 +102,14 @@
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="syncText">本地模式</span>
                 </div>
-                <!-- 一鍵在桌面上建立主程式 -->
-                <button onclick="downloadDesktopShortcut()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition flex items-center gap-1.5 shadow-sm border border-blue-200" title="在桌面建立一鍵啟動捷徑">
-                    <i class="fa-solid fa-desktop"></i>
-                    <span>建立桌面捷徑</span>
+                <!-- 一鍵分享加入 iPhone 桌面 / 下載捷徑 -->
+                <button onclick="handleAddToHomeScreen()" class="px-3 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition flex items-center gap-1.5 shadow-md shadow-blue-500/20" title="在手機或電腦建立桌面 App">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    <span>放至桌面 App</span>
                 </button>
                 <button onclick="openSyncModal()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 shadow-sm border border-slate-200/60">
                     <i class="fa-solid fa-cloud"></i>
-                    <span>雲端資料庫設定</span>
+                    <span class="hidden sm:inline">雲端設定</span>
                 </button>
                 <button onclick="refreshData()" class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition" title="立即重新同步">
                     <i class="fa-solid fa-rotate" id="refreshIcon"></i>
@@ -432,6 +432,33 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- iPhone「加入主畫面」視覺指引視窗 -->
+    <div id="iosGuideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 shadow-2xl relative animate-bounce-in text-center">
+            <button onclick="closeIosGuideModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-2xl mx-auto mb-3 shadow-lg shadow-blue-500/30">
+                📋
+            </div>
+            <h3 class="text-base font-bold text-slate-800">在 iPhone 桌面上建立 App</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">只需兩步，即可全螢幕體驗專屬待辦 App！</p>
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 text-left space-y-2.5 text-xs text-slate-700">
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0 text-[11px]">1</span>
+                    <span>點擊 Safari 螢幕下方中間的<b>「分享」按鈕</b> (<i class="fa-solid fa-arrow-up-from-bracket text-blue-600"></i>)</span>
+                </div>
+                <div class="flex items-start gap-2.5">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold flex-shrink-0 text-[11px]">2</span>
+                    <span>往下滑動，選擇<b>「加入主畫面」</b> (<i class="fa-regular fa-square-plus text-slate-700"></i>)，再點右上角「新增」</span>
+                </div>
+            </div>
+            <button onclick="closeIosGuideModal()" class="w-full mt-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition">
+                我知道了
+            </button>
         </div>
     </div>
 
@@ -1069,7 +1096,48 @@
             }
         }
 
-        // 桌面捷徑下載與建立
+        // 一鍵建立 iPhone 桌面 App 或下載電腦捷徑
+        async function handleAddToHomeScreen() {
+            const currentUrl = window.location.href;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+            // 1. 如果在支援 Web Share API 的環境 (如 iPhone Safari)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '待辦清單',
+                        text: '我的雲端待辦清單 App',
+                        url: currentUrl
+                    });
+                    return;
+                } catch (err) {
+                    // 若使用者取消分享或 iOS 不允許 share 直接加主畫面，則跳出提示視窗
+                    if (err.name !== 'AbortError' && isIOS) {
+                        openIosGuideModal();
+                        return;
+                    }
+                }
+            }
+
+            // 2. 如果是 iOS 且 share 未能執行，直接顯示專屬視覺指引
+            if (isIOS) {
+                openIosGuideModal();
+                return;
+            }
+
+            // 3. 電腦環境則下載電腦桌面捷徑檔
+            downloadDesktopShortcut();
+        }
+
+        function openIosGuideModal() {
+            document.getElementById('iosGuideModal').classList.remove('hidden');
+        }
+
+        function closeIosGuideModal() {
+            document.getElementById('iosGuideModal').classList.add('hidden');
+        }
+
+        // 桌面捷徑下載與建立 (電腦端)
         function downloadDesktopShortcut() {
             const currentUrl = window.location.href;
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
